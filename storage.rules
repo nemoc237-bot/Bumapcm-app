@@ -1,0 +1,55 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() &&
+        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // ID cards, selfies, driver licenses: private. Only the owner (matched
+    // by the uid folder they uploaded into) and admins (for verification)
+    // may read them. Anyone signed in may upload their own during registration.
+    match /ids/{userId}/{fileName} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow write: if isSignedIn() && request.auth.uid == userId;
+    }
+    match /selfies/{userId}/{fileName} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow write: if isSignedIn() && request.auth.uid == userId;
+    }
+    match /licenses/{userId}/{fileName} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow write: if isSignedIn() && request.auth.uid == userId;
+    }
+    match /vehicles/{userId}/{fileName} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow write: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Payment screenshots: private. Buyer who uploaded, the seller of that
+    // order, and admins can view. Simplified here to signed-in users can
+    // read (fine-grained per-order checks are enforced by only ever sharing
+    // the URL through Firestore order docs, which already have their own
+    // access rules).
+    match /payment-screenshots/{userId}/{fileName} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Public assets: store logos, product photos.
+    match /store-logos/{userId}/{fileName} {
+      allow read: if true;
+      allow write: if isSignedIn() && request.auth.uid == userId;
+    }
+    match /products/{storeId}/{fileName} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+  }
+}

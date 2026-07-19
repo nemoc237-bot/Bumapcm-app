@@ -1,0 +1,13 @@
+{
+  "name": "BUMAP - Buea Market Place",
+  "short_name": "BUMAP",
+  "description": "Order from local sellers in Buea. Bike and Taxi delivery. Pay sellers directly.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1fb567",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

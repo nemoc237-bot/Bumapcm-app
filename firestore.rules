@@ -1,0 +1,130 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function myProfile() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function myRole() {
+      return isSignedIn() ? myProfile().role : null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && myRole() == 'admin';
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // ---------------------------------------------------------------------
+    // users
+    // Anyone signed in can create their own profile at registration.
+    // A user can read/update their own profile. Admin can read/update all
+    // (needed for verification and banning). No one may self-verify or
+    // self-unban — only an admin can flip `verified` / `banned`.
+    // ---------------------------------------------------------------------
+    match /users/{userId} {
+      allow create: if isOwner(userId)
+                    && request.resource.data.verified == false
+                    && request.resource.data.banned == false;
+      allow read: if isOwner(userId) || isAdmin();
+      allow update: if isAdmin()
+                    || (isOwner(userId)
+                        && request.resource.data.verified == resource.data.verified
+                        && request.resource.data.banned == resource.data.banned);
+      allow delete: if isAdmin();
+    }
+
+    // ---------------------------------------------------------------------
+    // drivers — one doc per driver, id == uid
+    // ---------------------------------------------------------------------
+    match /drivers/{driverId} {
+      allow create: if isOwner(driverId) && request.resource.data.verified == false;
+      allow read: if isSignedIn(); // buyers/sellers/admin need to see assigned driver info
+      allow update: if isAdmin()
+                    || (isOwner(driverId)
+                        && request.resource.data.verified == resource.data.verified);
+      allow delete: if isAdmin();
+    }
+
+    // ---------------------------------------------------------------------
+    // stores
+    // ---------------------------------------------------------------------
+    match /stores/{storeId} {
+      allow read: if true; // public storefronts
+      allow create: if isSignedIn() && myRole() == 'seller' && request.resource.data.sellerId == request.auth.uid
+                    && request.resource.data.verified == false;
+      allow update: if isAdmin()
+                    || (isSignedIn() && resource.data.sellerId == request.auth.uid
+                        && request.resource.data.sellerId == resource.data.sellerId
+                        && request.resource.data.verified == resource.data.verified);
+      allow delete: if isAdmin() || (isSignedIn() && resource.data.sellerId == request.auth.uid);
+    }
+
+    // ---------------------------------------------------------------------
+    // products — sellers manage only their own store's products
+    // ---------------------------------------------------------------------
+    match /products/{productId} {
+      allow read: if true;
+      allow create: if isSignedIn() && myRole() == 'seller'
+                    && get(/databases/$(database)/documents/stores/$(request.resource.data.storeId)).data.sellerId == request.auth.uid;
+      allow update, delete: if isAdmin()
+                    || (isSignedIn()
+                        && get(/databases/$(database)/documents/stores/$(resource.data.storeId)).data.sellerId == request.auth.uid);
+    }
+
+    // ---------------------------------------------------------------------
+    // orders
+    // Buyers see their own orders. Sellers see orders on their store.
+    // Drivers see orders once assigned to them, or open requests matching
+    // their vehicle type while they are Active (checked via the drivers doc).
+    // Admin sees everything.
+    // ---------------------------------------------------------------------
+    match /orders/{orderId} {
+      allow create: if isSignedIn() && myRole() == 'buyer' && request.resource.data.buyerId == request.auth.uid;
+
+      allow read: if isAdmin()
+                  || (isSignedIn() && resource.data.buyerId == request.auth.uid)
+                  || (isSignedIn() && resource.data.sellerId == request.auth.uid)
+                  || (isSignedIn() && resource.data.driverId == request.auth.uid)
+                  || (isSignedIn() && myRole() == 'driver' && resource.data.status == 'driver_requested');
+
+      allow update: if isAdmin()
+                  // buyer confirming delivery on their own order
+                  || (isSignedIn() && resource.data.buyerId == request.auth.uid)
+                  // seller confirming payment / requesting delivery / confirming delivery
+                  || (isSignedIn() && resource.data.sellerId == request.auth.uid)
+                  // an Active driver accepting an open request, or the assigned driver updating status
+                  || (isSignedIn() && myRole() == 'driver'
+                      && (resource.data.driverId == request.auth.uid || resource.data.status == 'driver_requested')
+                      && get(/databases/$(database)/documents/drivers/$(request.auth.uid)).data.isActive == true);
+
+      allow delete: if isAdmin();
+    }
+
+    // ---------------------------------------------------------------------
+    // settings — global delivery fee config, admin-writable, readable by
+    // any signed-in user (sellers need it to compute delivery fees).
+    // ---------------------------------------------------------------------
+    match /settings/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // ---------------------------------------------------------------------
+    // disputes
+    // ---------------------------------------------------------------------
+    match /disputes/{disputeId} {
+      allow create: if isSignedIn() && request.resource.data.raisedBy == request.auth.uid;
+      allow read: if isAdmin() || (isSignedIn() && resource.data.raisedBy == request.auth.uid);
+      allow update, delete: if isAdmin();
+    }
+  }
+}
