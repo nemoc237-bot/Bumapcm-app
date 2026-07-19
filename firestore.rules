@@ -119,6 +119,17 @@ service cloud.firestore {
     }
 
     // ---------------------------------------------------------------------
+    // listings — Houses / Items / Services classifieds
+    // Anyone can read. Must be signed in to post. No self-editing after post.
+    // ---------------------------------------------------------------------
+    match /listings/{listingId} {
+      allow read: if true;
+      allow create: if isSignedIn();
+      allow update, delete: if isAdmin()
+                            || (isSignedIn() && resource.data.postedBy == request.auth.uid);
+    }
+
+    // ---------------------------------------------------------------------
     // disputes
     // ---------------------------------------------------------------------
     match /disputes/{disputeId} {

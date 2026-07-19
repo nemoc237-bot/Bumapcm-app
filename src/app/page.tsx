@@ -50,21 +50,21 @@ export default function HomePage() {
         <section className="mt-10">
           <h2 className="mb-4 text-lg font-bold">Houses, Items &amp; Services</h2>
           <div className="grid grid-cols-3 gap-3">
-            <div className="card flex flex-col items-center gap-2 py-6 text-center hover:border-brand-400 cursor-pointer">
-              <span className="text-4xl">🏠</span>
-              <p className="font-semibold text-sm">Houses</p>
-              <p className="text-xs text-neutral-500">Rooms for rent</p>
-            </div>
-            <div className="card flex flex-col items-center gap-2 py-6 text-center hover:border-brand-400 cursor-pointer">
-              <span className="text-4xl">🛍️</span>
-              <p className="font-semibold text-sm">Items</p>
-              <p className="text-xs text-neutral-500">Phones, beds…</p>
-            </div>
-            <div className="card flex flex-col items-center gap-2 py-6 text-center hover:border-brand-400 cursor-pointer">
-              <span className="text-4xl">🛠️</span>
-              <p className="font-semibold text-sm">Services</p>
-              <p className="text-xs text-neutral-500">Tailors, Graphics</p>
-            </div>
+            {[
+              { type: "house",   icon: "🏠", label: "Houses",   blurb: "Rooms for rent" },
+              { type: "item",    icon: "🛋️", label: "Items",    blurb: "Phones, beds…" },
+              { type: "service", icon: "🛠️", label: "Services", blurb: "Tailors, Graphics" },
+            ].map((tile) => (
+              <Link
+                key={tile.type}
+                href={`/subcategories?type=${tile.type}`}
+                className="card flex flex-col items-center gap-2 py-6 text-center hover:border-brand-400 transition-colors"
+              >
+                <span className="text-4xl">{tile.icon}</span>
+                <p className="font-semibold text-sm">{tile.label}</p>
+                <p className="text-xs text-neutral-500">{tile.blurb}</p>
+              </Link>
+            ))}
           </div>
         </section>
 
