@@ -46,7 +46,21 @@ export const SUBCATEGORIES: Record<string, Subcategory[]> = {
     "Tailoring", "Graphics Design", "Tutoring", "Plumbing",
     "Delivery", "Photography", "Hair Dressing",
   ]),
-  food: buildSubs(["Local Dishes", "Snacks", "Drinks", "Catering"]),
+  food: buildSubs([
+    "African Food",
+    "Fufu & Eru",
+    "Achu",
+    "Khati Khati",
+    "Grilled Fish & Chicken",
+    "Suya & BBQ",
+    "Rice & Stew",
+    "Achombo",
+    "Beignets",
+    "Gari & Soup",
+    "Bakeries & Pastries",
+    "Drinks & Juice",
+    "Catering Services",
+  ]),
 };
 
 export function getCategoryLabel(type: string): string {

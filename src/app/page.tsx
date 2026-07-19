@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
+import { SearchBar } from "@/components/SearchBar";
 
 const CATEGORIES = [
   { name: "Food", icon: "🍲" },
@@ -45,6 +46,10 @@ export default function HomePage() {
               </Link>
             ))}
           </div>
+        </section>
+
+        <section className="mt-6">
+          <SearchBar />
         </section>
 
         <section className="mt-10">
