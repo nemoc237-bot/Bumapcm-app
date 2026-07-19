@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, deleteUser } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { uploadFile } from "@/lib/upload";
@@ -44,8 +44,10 @@ export default function RegisterPage() {
     }
 
     setSubmitting(true);
+    let createdUser: import("firebase/auth").User | null = null;
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, password);
+      createdUser = cred.user;
       const uid = cred.user.uid;
 
       const [idPhotoUrl, selfieUrl] = await Promise.all([
@@ -89,6 +91,10 @@ export default function RegisterPage() {
         role === "seller" ? "/seller" : role === "driver" ? "/driver" : role === "admin" ? "/admin" : "/buyer"
       );
     } catch (err: any) {
+      // Clean up the Auth account so the user can retry without "email already in use"
+      if (createdUser) {
+        try { await deleteUser(createdUser); } catch (_) {}
+      }
       setError(err.message?.replace("Firebase: ", "") || "Registration failed.");
     } finally {
       setSubmitting(false);
