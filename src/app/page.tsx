@@ -47,6 +47,27 @@ export default function HomePage() {
           </div>
         </section>
 
+        <section className="mt-10">
+          <h2 className="mb-4 text-lg font-bold">Houses, Items &amp; Services</h2>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="card flex flex-col items-center gap-2 py-6 text-center hover:border-brand-400 cursor-pointer">
+              <span className="text-4xl">🏠</span>
+              <p className="font-semibold text-sm">Houses</p>
+              <p className="text-xs text-neutral-500">Rooms for rent</p>
+            </div>
+            <div className="card flex flex-col items-center gap-2 py-6 text-center hover:border-brand-400 cursor-pointer">
+              <span className="text-4xl">🛍️</span>
+              <p className="font-semibold text-sm">Items</p>
+              <p className="text-xs text-neutral-500">Phones, beds…</p>
+            </div>
+            <div className="card flex flex-col items-center gap-2 py-6 text-center hover:border-brand-400 cursor-pointer">
+              <span className="text-4xl">🛠️</span>
+              <p className="font-semibold text-sm">Services</p>
+              <p className="text-xs text-neutral-500">Tailors, Graphics</p>
+            </div>
+          </div>
+        </section>
+
         <section className="mt-10 grid gap-4 sm:grid-cols-3">
           <div className="card">
             <p className="text-2xl">💳</p>
