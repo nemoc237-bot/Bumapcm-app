@@ -3,10 +3,13 @@ import Navbar from "@/components/Navbar";
 import { SearchBar } from "@/components/SearchBar";
 
 const BROWSE_CATEGORIES = [
-  { type: "food",        icon: "🍛", name: "Food" },
-  { type: "groceries",   icon: "🛒", name: "Groceries" },
-  { type: "fashion",     icon: "👗", name: "Fashion" },
-  { type: "electronics", icon: "📱", name: "Electronics" },
+  { type: "food",        icon: "🍛", name: "Food",        blurb: "Cooked meals & street food" },
+  { type: "groceries",   icon: "🛒", name: "Groceries",   blurb: "Fresh produce & supplies" },
+  { type: "fashion",     icon: "👗", name: "Fashion",     blurb: "Ankara, casual & uniforms" },
+  { type: "electronics", icon: "📱", name: "Electronics", blurb: "Phones & accessories" },
+  { type: "house",       icon: "🏠", name: "Houses",      blurb: "Rooms & apartments for rent" },
+  { type: "item",        icon: "🛋️", name: "Items",       blurb: "Phones, beds & furniture" },
+  { type: "service",     icon: "🛠️", name: "Services",    blurb: "Tailors, graphics & more" },
 ];
 
 export default function HomePage() {
@@ -39,10 +42,11 @@ export default function HomePage() {
               <Link
                 key={c.type}
                 href={`/listings?type=${c.type}`}
-                className="card flex flex-col items-center gap-2 py-8 text-center hover:border-brand-400 transition-colors"
+                className="card flex flex-col items-center gap-2 py-6 text-center hover:border-brand-400 transition-colors"
               >
                 <span className="text-3xl">{c.icon}</span>
-                <span className="font-semibold">{c.name}</span>
+                <p className="font-semibold text-sm">{c.name}</p>
+                <p className="text-xs text-neutral-500">{c.blurb}</p>
               </Link>
             ))}
           </div>
@@ -50,27 +54,6 @@ export default function HomePage() {
 
         <section className="mt-6">
           <SearchBar />
-        </section>
-
-        <section className="mt-10">
-          <h2 className="mb-4 text-lg font-bold">Houses, Items &amp; Services</h2>
-          <div className="grid grid-cols-3 gap-3">
-            {[
-              { type: "house",   icon: "🏠", label: "Houses",   blurb: "Rooms for rent" },
-              { type: "item",    icon: "🛋️", label: "Items",    blurb: "Phones, beds…" },
-              { type: "service", icon: "🛠️", label: "Services", blurb: "Tailors, Graphics" },
-            ].map((tile) => (
-              <Link
-                key={tile.type}
-                href={`/listings?type=${tile.type}`}
-                className="card flex flex-col items-center gap-2 py-6 text-center hover:border-brand-400 transition-colors"
-              >
-                <span className="text-4xl">{tile.icon}</span>
-                <p className="font-semibold text-sm">{tile.label}</p>
-                <p className="text-xs text-neutral-500">{tile.blurb}</p>
-              </Link>
-            ))}
-          </div>
         </section>
 
         <section className="mt-10 grid gap-4 sm:grid-cols-3">
