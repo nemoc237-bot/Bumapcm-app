@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { doc, increment, onSnapshot, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -110,6 +111,13 @@ function OrderDetail() {
           <img src={order.paymentScreenshotUrl} alt="Payment proof" className="w-full rounded-xl border" />
         </div>
       )}
+
+      <Link
+        href={`/chat/${order.id}`}
+        className="btn-secondary flex w-full items-center justify-center gap-2"
+      >
+        💬 Chat with Seller
+      </Link>
 
       {order.status === "picked_up" && !order.buyerConfirmedDelivery && (
         <button className="btn-primary w-full" onClick={confirmDelivery}>

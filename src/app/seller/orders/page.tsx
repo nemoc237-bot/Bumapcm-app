@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import {
   collection,
   doc,
@@ -122,6 +123,13 @@ function OrderRow({ order, settings }: { order: Order; settings: Settings }) {
           Confirm order was delivered
         </button>
       )}
+
+      <Link
+        href={`/chat/${order.id}`}
+        className="btn-secondary flex w-full items-center justify-center gap-2 text-sm"
+      >
+        💬 Chat with Buyer
+      </Link>
     </div>
   );
 }
