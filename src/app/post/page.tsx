@@ -7,7 +7,8 @@ import { db } from "@/lib/firebase";
 import { uploadFile } from "@/lib/upload";
 import Navbar from "@/components/Navbar";
 import { Spinner } from "@/components/Shared";
-import { CATEGORIES, SUBCATEGORIES } from "@/data/categories";
+import { CATEGORIES, getSubcategory } from "@/data/categories";
+import type { Subcategory } from "@/data/categories";
 
 const emptyForm = {
   type: "",
@@ -32,7 +33,8 @@ function PostFormInner() {
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const subOptions = SUBCATEGORIES[form.type] ?? [];
+  const selectedCategory = CATEGORIES.find((c) => c.type === form.type);
+  const subOptions: Subcategory[] = selectedCategory?.subcategories ?? [];
 
   function updateField(field: string, value: string) {
     setForm((prev) => ({
@@ -98,7 +100,7 @@ function PostFormInner() {
             >
               <option value="">Select category</option>
               {CATEGORIES.map((c) => (
-                <option key={c.type} value={c.type}>{c.label}</option>
+                <option key={c.type} value={c.type}>{c.name}</option>
               ))}
             </select>
           </Field>
@@ -113,8 +115,8 @@ function PostFormInner() {
               <option value="">
                 {form.type ? "Select subcategory" : "Choose a category first"}
               </option>
-              {subOptions.map((s) => (
-                <option key={s.slug} value={s.slug}>{s.label}</option>
+              {subOptions.map((s: Subcategory) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
               ))}
             </select>
           </Field>

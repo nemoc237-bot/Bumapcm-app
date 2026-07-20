@@ -2,57 +2,19 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import Link from "next/link";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import {
+  collection, query, where, getDocs, addDoc, serverTimestamp,
+} from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import Navbar from "@/components/Navbar";
-import { Spinner, EmptyState } from "@/components/Shared";
-import { getCategoryLabel, getSubLabel } from "@/data/categories";
+import { ListingCard } from "@/components/ListingCard";
+import { Spinner } from "@/components/Shared";
+import { getCategory, getSubcategory } from "@/data/categories";
 import type { Listing } from "@/types/listing";
 
-function headerFor(type: string, subLabel: string): string {
-  if (type === "house") return `${subLabel} for Rent in Buea`;
-  if (type === "item") return `${subLabel} for Sale in Buea`;
-  if (type === "service") return `${subLabel} Services in Buea`;
-  return `${subLabel} in Buea`;
-}
-
-function ListingCard({ listing }: { listing: Listing }) {
-  const cover = listing.images?.[0];
-  return (
-    <div className="card flex overflow-hidden !p-0">
-      <div className="w-24 h-24 flex-shrink-0 bg-neutral-100">
-        {cover ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={cover} alt={listing.title} className="w-full h-full object-cover" />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-neutral-400 text-xs">
-            No photo
-          </div>
-        )}
-      </div>
-      <div className="flex-1 p-3 flex flex-col justify-between min-w-0">
-        <div>
-          <h3 className="font-semibold text-neutral-900 text-sm truncate">
-            {listing.title || "Untitled listing"}
-          </h3>
-          <p className="text-brand-600 font-bold text-sm mt-0.5">
-            {listing.price ? `${Number(listing.price).toLocaleString()} FCFA` : "Price on request"}
-          </p>
-          <p className="text-neutral-500 text-xs truncate">{listing.location || "Buea"}</p>
-        </div>
-        {listing.contact && (
-          <a
-            href={`tel:${listing.contact}`}
-            className="mt-2 self-start px-3 py-1.5 rounded-lg bg-amber-500 text-white text-xs font-semibold"
-          >
-            Contact
-          </a>
-        )}
-      </div>
-    </div>
-  );
-}
+// ---------------------------------------------------------------------------
+// Root page — decides which view to show based on URL params
+// ---------------------------------------------------------------------------
 
 function ListingsInner() {
   const searchParams = useSearchParams();
@@ -60,13 +22,123 @@ function ListingsInner() {
   const type = searchParams.get("type") ?? "";
   const sub = searchParams.get("sub") ?? "";
 
+  const category = getCategory(type);
+
+  // Unknown category
+  if (!category) {
+    return (
+      <>
+        <Navbar />
+        <main className="mx-auto max-w-5xl px-4 py-16 text-center">
+          <p className="font-medium text-neutral-700 mb-4">Unknown category.</p>
+          <button onClick={() => router.push("/")} className="btn-primary">
+            Back to home
+          </button>
+        </main>
+      </>
+    );
+  }
+
+  // No subcategory selected yet → show the subcategory grid
+  if (!sub) {
+    return (
+      <>
+        <Navbar />
+        <div className="sticky top-[57px] z-20 bg-white border-b border-neutral-200 px-4 pt-4 pb-3">
+          <button onClick={() => router.back()} className="text-sm text-neutral-500 mb-1">
+            ← Back
+          </button>
+          <h1 className="text-xl font-bold text-neutral-900">{category.name}</h1>
+          <p className="text-sm text-neutral-500">Choose a subcategory to browse</p>
+        </div>
+        <main className="mx-auto max-w-5xl px-4 pt-4 pb-10">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {category.subcategories.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => router.push(`/listings?type=${type}&sub=${s.id}`)}
+                className="card flex flex-col items-center gap-1 py-5 text-center hover:border-brand-400 transition-colors"
+              >
+                <span className="text-4xl">{s.icon}</span>
+                <p className="font-semibold text-sm text-neutral-800 mt-1">{s.name}</p>
+                <p className="text-xs text-neutral-500 leading-tight">{s.desc}</p>
+              </button>
+            ))}
+          </div>
+        </main>
+      </>
+    );
+  }
+
+  // Subcategory selected → Browse / Sell tabs
+  return <SubcategoryTabs type={type} sub={sub} />;
+}
+
+// ---------------------------------------------------------------------------
+// Browse + Sell tabs
+// ---------------------------------------------------------------------------
+
+function SubcategoryTabs({ type, sub }: { type: string; sub: string }) {
+  const router = useRouter();
+  const [tab, setTab] = useState<"browse" | "sell">("browse");
+
+  const category = getCategory(type)!;
+  const subcategory = getSubcategory(type, sub);
+  const subName = subcategory?.name ?? sub;
+
+  return (
+    <>
+      <Navbar />
+      <div className="sticky top-[57px] z-20 bg-white border-b border-neutral-200 px-4 pt-4 pb-0">
+        <button onClick={() => router.back()} className="text-sm text-neutral-500 mb-1">
+          ← Back
+        </button>
+        <h1 className="text-lg font-bold text-neutral-900">{subName}</h1>
+        <p className="text-xs text-neutral-500 mb-3">{category.name} · {subName}</p>
+
+        {/* Tab bar */}
+        <div className="flex gap-2 pb-0">
+          {(["browse", "sell"] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={`flex-1 py-2.5 text-sm font-semibold rounded-t-lg border-b-2 transition-colors ${
+                tab === t
+                  ? "border-brand-600 text-brand-600 bg-brand-50"
+                  : "border-transparent text-neutral-500 bg-transparent hover:text-neutral-700"
+              }`}
+            >
+              {t === "browse" ? "Browse" : "Sell"}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <main className="mx-auto max-w-5xl px-4 pt-4 pb-10">
+        {tab === "browse" ? (
+          <BrowseTab type={type} sub={sub} subName={subName} onSell={() => setTab("sell")} />
+        ) : (
+          <SellTab type={type} sub={sub} onPosted={() => setTab("browse")} />
+        )}
+      </main>
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Browse tab — Firestore listings
+// ---------------------------------------------------------------------------
+
+function BrowseTab({
+  type, sub, subName, onSell,
+}: {
+  type: string; sub: string; subName: string; onSell: () => void;
+}) {
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!type || !sub) { setLoading(false); return; }
-
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -92,67 +164,155 @@ function ListingsInner() {
     return () => { cancelled = true; };
   }, [type, sub]);
 
-  const subLabel = getSubLabel(type, sub);
-  const categoryLabel = getCategoryLabel(type);
+  if (loading) {
+    return (
+      <div className="flex flex-col gap-3">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="h-24 rounded-2xl bg-neutral-200 animate-pulse" />
+        ))}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <p className="text-center text-red-600 text-sm mt-8">
+        Couldn&apos;t load listings: {error}
+      </p>
+    );
+  }
+
+  if (listings.length === 0) {
+    return (
+      <div className="text-center mt-16">
+        <p className="text-neutral-600 font-medium mb-3">
+          Be the first to post a {subName}
+        </p>
+        <button onClick={onSell} className="btn-primary">
+          Post a Listing
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <>
-      <Navbar />
-      <div className="sticky top-[57px] z-20 bg-white border-b border-neutral-200 px-4 pt-4 pb-3">
-        <button onClick={() => router.back()} className="text-sm text-neutral-500 mb-1">
-          ← Back
-        </button>
-        <h1 className="text-lg font-bold text-neutral-900">{headerFor(type, subLabel)}</h1>
-        <p className="text-xs text-neutral-500">{categoryLabel} · {subLabel}</p>
-      </div>
-
-      <main className="mx-auto max-w-5xl px-4 pt-4 pb-10">
-        <div className="flex justify-end mb-3">
-          <Link
-            href={`/post?type=${type}&sub=${sub}`}
-            className="btn-primary !py-2 !px-3 text-sm"
-          >
-            + Post a Listing
-          </Link>
-        </div>
-
-        {loading && (
-          <div className="flex flex-col gap-3">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-24 rounded-2xl bg-neutral-200 animate-pulse" />
-            ))}
-          </div>
-        )}
-
-        {!loading && error && (
-          <p className="text-center text-red-600 text-sm mt-8">
-            Couldn't load listings: {error}
-          </p>
-        )}
-
-        {!loading && !error && listings.length === 0 && (
-          <div className="text-center mt-16">
-            <EmptyState text={`Be the first to post a ${subLabel} in Buea`} />
-            <Link
-              href={`/post?type=${type}&sub=${sub}`}
-              className="btn-primary mt-4 inline-flex"
-            >
-              Post a Listing
-            </Link>
-          </div>
-        )}
-
-        {!loading && !error && listings.length > 0 && (
-          <div className="flex flex-col gap-3">
-            {listings.map((listing) => (
-              <ListingCard key={listing.id} listing={listing} />
-            ))}
-          </div>
-        )}
-      </main>
-    </>
+    <div className="flex flex-col gap-3">
+      {listings.map((listing) => (
+        <ListingCard key={listing.id} listing={listing} />
+      ))}
+    </div>
   );
 }
+
+// ---------------------------------------------------------------------------
+// Sell tab — inline quick-post form (no image upload)
+// For full image upload use /post page.
+// ---------------------------------------------------------------------------
+
+const emptyForm = { title: "", price: "", description: "", location: "", contact: "" };
+
+function SellTab({
+  type, sub, onPosted,
+}: {
+  type: string; sub: string; onPosted: () => void;
+}) {
+  const [form, setForm] = useState(emptyForm);
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  function update(field: string, value: string) {
+    setForm((prev) => ({ ...prev, [field]: value }));
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setErrorMsg(null);
+
+    if (!form.title || !form.price) {
+      setErrorMsg("Title and price are required.");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await addDoc(collection(db, "listings"), {
+        type,
+        subcategory: sub,
+        title: form.title.trim(),
+        price: Number(form.price),
+        description: form.description.trim(),
+        location: form.location.trim(),
+        contact: form.contact.trim(),
+        images: [],
+        createdAt: serverTimestamp(),
+      });
+      setForm(emptyForm);
+      onPosted(); // switch to Browse tab
+    } catch (err: any) {
+      setErrorMsg(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="flex flex-col gap-3 max-w-lg mx-auto">
+      <p className="text-xs text-neutral-500">
+        Quick post — no photos.{" "}
+        <a href={`/post?type=${type}&sub=${sub}`} className="text-brand-600 underline">
+          Use full form for photos →
+        </a>
+      </p>
+
+      <input
+        className="input"
+        placeholder="Title, e.g. Plate of Eru"
+        value={form.title}
+        onChange={(e) => update("title", e.target.value)}
+      />
+      <input
+        className="input"
+        type="number"
+        min="0"
+        placeholder="Price (FCFA)"
+        value={form.price}
+        onChange={(e) => update("price", e.target.value)}
+      />
+      <textarea
+        className="input min-h-20"
+        placeholder="Description"
+        value={form.description}
+        onChange={(e) => update("description", e.target.value)}
+      />
+      <input
+        className="input"
+        placeholder="Location, e.g. Molyko, Buea"
+        value={form.location}
+        onChange={(e) => update("location", e.target.value)}
+      />
+      <input
+        className="input"
+        placeholder="Contact (phone/WhatsApp)"
+        value={form.contact}
+        onChange={(e) => update("contact", e.target.value)}
+      />
+
+      {errorMsg && <p className="text-red-600 text-sm">{errorMsg}</p>}
+
+      <button
+        type="submit"
+        disabled={submitting}
+        className="btn-primary w-full disabled:opacity-60"
+      >
+        {submitting ? "Posting…" : "Post Listing"}
+      </button>
+    </form>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Export with Suspense boundary (required for useSearchParams in App Router)
+// ---------------------------------------------------------------------------
 
 export default function ListingsPage() {
   return (

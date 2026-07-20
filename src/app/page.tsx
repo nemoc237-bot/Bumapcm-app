@@ -2,11 +2,11 @@ import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import { SearchBar } from "@/components/SearchBar";
 
-const CATEGORIES = [
-  { name: "Food", icon: "🍲" },
-  { name: "Groceries", icon: "🛒" },
-  { name: "Fashion", icon: "👗" },
-  { name: "Electronics", icon: "🔌" },
+const BROWSE_CATEGORIES = [
+  { type: "food",        icon: "🍛", name: "Food" },
+  { type: "groceries",   icon: "🛒", name: "Groceries" },
+  { type: "fashion",     icon: "👗", name: "Fashion" },
+  { type: "electronics", icon: "📱", name: "Electronics" },
 ];
 
 export default function HomePage() {
@@ -35,11 +35,11 @@ export default function HomePage() {
         <section className="mt-10">
           <h2 className="mb-4 text-lg font-bold">Browse by category</h2>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            {CATEGORIES.map((c) => (
+            {BROWSE_CATEGORIES.map((c) => (
               <Link
-                key={c.name}
-                href={`/buyer?category=${c.name}`}
-                className="card flex flex-col items-center gap-2 py-8 text-center hover:border-brand-400"
+                key={c.type}
+                href={`/listings?type=${c.type}`}
+                className="card flex flex-col items-center gap-2 py-8 text-center hover:border-brand-400 transition-colors"
               >
                 <span className="text-3xl">{c.icon}</span>
                 <span className="font-semibold">{c.name}</span>
@@ -62,7 +62,7 @@ export default function HomePage() {
             ].map((tile) => (
               <Link
                 key={tile.type}
-                href={`/subcategories?type=${tile.type}`}
+                href={`/listings?type=${tile.type}`}
                 className="card flex flex-col items-center gap-2 py-6 text-center hover:border-brand-400 transition-colors"
               >
                 <span className="text-4xl">{tile.icon}</span>
