@@ -1,0 +1,84 @@
+// prisma/schema.prisma
+// BUMAP — Store detail flow: Store, Booking, Message (chat) models.
+// Run `npx prisma generate` after editing, `npx prisma migrate dev` to apply.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL") // set in .env, see .env.example
+}
+
+model Store {
+  id      String @id @default(cuid())
+
+  name        String
+  category    String // "Houses" (top-level category)
+  subcategory String // "Apartment" | "Hostel" | "Guesthouse" | "Shop"
+  description String
+
+  price       Int    // base price in FCFA. 0 for "contact for price" shops.
+  priceUnit   String // e.g. "per night", "per bed per night", "per month", "Contact for price"
+  monthlyPrice Int?  // optional, e.g. Hostel's monthly rate alongside nightly rate
+
+  location        String // "Buea, [Area], Southwest Region, CM"
+  images          String[] // 3-4 placeholder image URLs
+  contactWhatsApp String   // digits only, e.g. "237670000000" — used to build wa.me links
+
+  isDemo Boolean @default(false) // true for seeded demo stores, lets us filter/clean them later
+  status String  @default("active") // "active" | "inactive" | "pending"
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  bookings Booking[]
+  messages Message[]
+
+  @@index([subcategory])
+}
+
+model Booking {
+  id String @id @default(cuid())
+
+  storeId String
+  store   Store  @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  name  String
+  phone String
+  date  DateTime
+  notes String?
+
+  // Distinguishes the two CTA flows that both open the booking modal.
+  type BookingType @default(BOOK_NOW)
+
+  createdAt DateTime @default(now())
+
+  @@index([storeId])
+}
+
+enum BookingType {
+  BOOK_NOW
+  BOOK_APPOINTMENT
+}
+
+model Message {
+  id String @id @default(cuid())
+
+  storeId String
+  store   Store  @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  sender     MessageSender
+  senderName String? // optional display name, mainly relevant for client-side messages
+  body       String
+
+  createdAt DateTime @default(now())
+
+  @@index([storeId, createdAt])
+}
+
+enum MessageSender {
+  CLIENT
+  LANDLORD
+}
