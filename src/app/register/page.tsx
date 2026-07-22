@@ -105,7 +105,7 @@ export default function RegisterPage() {
     <>
       <Navbar />
       <main className="mx-auto max-w-lg px-4 py-8">
-        <h1 className="text-2xl font-bold text-brand-800">Create your BUMAP account</h1>
+        <h1 className="text-2xl font-bold text-brand-800">Create your BUMAP.co account</h1>
         <p className="mt-1 text-sm text-neutral-600">
           Admins verify every ID before you can sell, drive, or go live.
         </p>

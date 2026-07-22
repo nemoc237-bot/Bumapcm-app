@@ -61,7 +61,7 @@ export default function HomePage() {
             <p className="text-2xl">💳</p>
             <h3 className="mt-2 font-bold">Pay sellers directly</h3>
             <p className="text-sm text-neutral-600">
-              Money never touches BUMAP. Pay via OM/MoMo and upload your
+              Money never touches BUMAP.co. Pay via OM/MoMo and upload your
               screenshot as proof.
             </p>
           </div>
@@ -77,7 +77,7 @@ export default function HomePage() {
             <p className="text-2xl">✅</p>
             <h3 className="mt-2 font-bold">Verified sellers &amp; drivers</h3>
             <p className="text-sm text-neutral-600">
-              Every seller and driver is ID-checked by BUMAP admins before
+              Every seller and driver is ID-checked by BUMAP.co admins before
               they go live.
             </p>
           </div>

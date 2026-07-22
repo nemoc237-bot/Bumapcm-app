@@ -36,7 +36,7 @@ export default function LoginPage() {
     <>
       <Navbar />
       <main className="mx-auto max-w-sm px-4 py-12">
-        <h1 className="text-2xl font-bold text-brand-800">Log in to BUMAP</h1>
+        <h1 className="text-2xl font-bold text-brand-800">Log in to BUMAP.co</h1>
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <div>
             <label className="label">Email</label>

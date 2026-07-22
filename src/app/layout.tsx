@@ -5,7 +5,7 @@ import { CartProvider } from "@/context/CartContext";
 import Footer from "@/components/Footer";
 
 export const metadata: Metadata = {
-  title: "BUMAP - Buea Market Place",
+  title: "BUMAP.co - Buea Market Place",
   description:
     "Order from local sellers in Buea and get it delivered by Bike or Taxi. Pay sellers directly via Orange Money / MTN MoMo.",
   manifest: "/manifest.json",

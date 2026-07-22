@@ -47,7 +47,7 @@ export default function RoleGuard({
       <div className="mx-auto max-w-md px-4 py-16 text-center">
         <p className="text-lg font-semibold text-red-600">Account suspended</p>
         <p className="mt-2 text-sm text-neutral-600">
-          Reason: {profile.banReason || "Contact BUMAP support for details."}
+          Reason: {profile.banReason || "Contact BUMAP.co support for details."}
         </p>
       </div>
     );

@@ -22,7 +22,7 @@ export default function Navbar() {
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
         <Link href="/" className="flex items-center gap-2 font-extrabold text-brand-700">
           <span className="text-xl">🛒</span>
-          <span>BUMAP</span>
+          <span>BUMAP.co</span>
         </Link>
 
         <div className="flex items-center gap-3">

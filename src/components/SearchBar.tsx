@@ -27,7 +27,7 @@ export function SearchBar({ initialValue = "" }: SearchBarProps) {
         value={term}
         onChange={(e) => setTerm(e.target.value)}
         onKeyDown={(e) => e.key === "Enter" && runSearch()}
-        placeholder="Search BUMAP: Fufu, iPhone, Studio…"
+        placeholder="Search BUMAP.co: Fufu, iPhone, Studio…"
         className="flex-1 bg-transparent text-sm text-neutral-800 placeholder-neutral-400 focus:outline-none"
       />
       {term && (

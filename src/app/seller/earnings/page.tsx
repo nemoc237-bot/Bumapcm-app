@@ -40,7 +40,7 @@ function EarningsContent() {
         <p className="text-sm text-brand-800">Total Sales (delivered orders)</p>
         <p className="text-3xl font-extrabold text-brand-700">{formatFcfa(totalSales)}</p>
         <p className="mt-1 text-xs text-neutral-500">
-          Money is paid directly to your OM/MoMo by buyers — BUMAP never holds it.
+          Money is paid directly to your OM/MoMo by buyers — BUMAP.co never holds it.
         </p>
       </div>
 

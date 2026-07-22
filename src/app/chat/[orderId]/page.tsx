@@ -53,7 +53,7 @@ function MomoBadge({ store }: { store: Store }) {
   return (
     <div className={`rounded-xl border-2 px-4 py-3 ${providerColor}`}>
       <p className="text-xs font-semibold uppercase tracking-wide opacity-70">
-        Pay via {store.momoProvider} — locked by BUMAP 🔒
+        Pay via {store.momoProvider} — locked by BUMAP.co 🔒
       </p>
       <div className="mt-1 flex items-center justify-between gap-3">
         <p className="text-2xl font-extrabold tracking-widest">
