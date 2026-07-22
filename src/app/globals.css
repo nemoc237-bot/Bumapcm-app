@@ -33,3 +33,7 @@ body {
 .badge {
   @apply inline-block rounded-full px-2.5 py-1 text-xs font-semibold;
 }
+
+/* Used by StoreGallery to hide the scrollbar on the image strip */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

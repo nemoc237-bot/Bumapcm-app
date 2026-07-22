@@ -119,6 +119,43 @@ export interface Settings {
   perKmRate: number;
 }
 
+/** Firestore collection: "houses" — rental/accommodation listings */
+export interface House {
+  id: string;
+  name: string;
+  subcategory: "Apartment" | "Hostel" | "Guesthouse" | "Shop";
+  description: string;
+  price: number;       // FCFA; 0 = "contact for price"
+  priceUnit: string;   // e.g. "per night", "per month", "Contact for price"
+  monthlyPrice?: number;
+  location: string;    // e.g. "Molyko, Buea, Southwest Region, CM"
+  images: string[];    // Firebase Storage URLs
+  contactWhatsApp: string; // digits only, e.g. "237670000000"
+  status: "active" | "inactive" | "pending";
+  isDemo?: boolean;
+  createdAt: number;
+}
+
+/** Firestore collection: "houseBookings" */
+export interface HouseBooking {
+  id: string;
+  houseId: string;
+  name: string;
+  phone: string;
+  date: string;       // ISO date string
+  notes?: string | null;
+  type: "BOOK_NOW" | "BOOK_APPOINTMENT";
+  createdAt: number;
+}
+
+/** Firestore subcollection: "houses/{houseId}/chatMessages" */
+export interface HouseChatMessage {
+  id: string;
+  sender: "CLIENT" | "LANDLORD";
+  body: string;
+  createdAt: number;
+}
+
 /** Firestore collection: "disputes" */
 export interface Dispute {
   id: string;
