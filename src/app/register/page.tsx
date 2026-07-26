@@ -18,6 +18,8 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [location, setLocation] = useState("");
+
+  // Seller & driver only — ID verification
   const [idPhoto, setIdPhoto] = useState<File | null>(null);
   const [selfie, setSelfie] = useState<File | null>(null);
 
@@ -30,11 +32,13 @@ export default function RegisterPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
+  const needsId = role === "seller" || role === "driver";
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
 
-    if (!idPhoto || !selfie) {
+    if (needsId && (!idPhoto || !selfie)) {
       setError("Please upload both your ID card photo and a selfie.");
       return;
     }
@@ -50,10 +54,14 @@ export default function RegisterPage() {
       createdUser = cred.user;
       const uid = cred.user.uid;
 
-      const [idPhotoUrl, selfieUrl] = await Promise.all([
-        uploadFile(idPhoto, `ids/${uid}`),
-        uploadFile(selfie, `selfies/${uid}`),
-      ]);
+      let idPhotoUrl = "";
+      let selfieUrl = "";
+      if (needsId && idPhoto && selfie) {
+        [idPhotoUrl, selfieUrl] = await Promise.all([
+          uploadFile(idPhoto, `ids/${uid}`),
+          uploadFile(selfie, `selfies/${uid}`),
+        ]);
+      }
 
       await setDoc(doc(db, "users", uid), {
         role,
@@ -62,7 +70,7 @@ export default function RegisterPage() {
         email,
         idPhotoUrl,
         selfieUrl,
-        verified: false,
+        verified: role === "buyer", // buyers are auto-verified; sellers/drivers need admin review
         banned: false,
         location,
         createdAt: Date.now(),
@@ -88,10 +96,9 @@ export default function RegisterPage() {
       }
 
       router.push(
-        role === "seller" ? "/seller" : role === "driver" ? "/driver" : role === "admin" ? "/admin" : "/buyer"
+        role === "seller" ? "/seller" : role === "driver" ? "/driver" : "/buyer"
       );
     } catch (err: any) {
-      // Clean up the Auth account so the user can retry without "email already in use"
       if (createdUser) {
         try { await deleteUser(createdUser); } catch (_) {}
       }
@@ -107,14 +114,17 @@ export default function RegisterPage() {
       <main className="mx-auto max-w-lg px-4 py-8">
         <h1 className="text-2xl font-bold text-brand-800">Create your BUMAP.co account</h1>
         <p className="mt-1 text-sm text-neutral-600">
-          Admins verify every ID before you can sell, drive, or go live.
+          {needsId
+            ? "Admins verify every ID before you can sell or drive."
+            : "Buyers join instantly — no ID required."}
         </p>
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+          {/* Role selector — no admin self-registration */}
           <div>
             <span className="label">I am a…</span>
-            <div className="grid grid-cols-4 gap-2">
-              {(["buyer", "seller", "driver", "admin"] as UserRole[]).map((r) => (
+            <div className="grid grid-cols-3 gap-2">
+              {(["buyer", "seller", "driver"] as UserRole[]).map((r) => (
                 <button
                   type="button"
                   key={r}
@@ -125,7 +135,7 @@ export default function RegisterPage() {
                       : "border-neutral-300 text-neutral-600"
                   }`}
                 >
-                  {r}
+                  {r === "buyer" ? "🛍️ Buyer" : r === "seller" ? "🏪 Seller" : "🛵 Driver"}
                 </button>
               ))}
             </div>
@@ -152,18 +162,27 @@ export default function RegisterPage() {
             <input className="input" required placeholder="e.g. Molyko, Buea" value={location} onChange={(e) => setLocation(e.target.value)} />
           </div>
 
-          <div>
-            <label className="label">ID Card Photo</label>
-            <input className="input" required type="file" accept="image/*" onChange={(e) => setIdPhoto(e.target.files?.[0] || null)} />
-          </div>
-          <div>
-            <label className="label">Selfie Photo</label>
-            <input className="input" required type="file" accept="image/*" onChange={(e) => setSelfie(e.target.files?.[0] || null)} />
-          </div>
-
-          {role === "driver" && (
+          {/* ID verification — sellers & drivers only */}
+          {needsId && (
             <div className="space-y-4 rounded-xl border border-dashed border-brand-300 p-4">
-              <p className="text-sm font-semibold text-brand-700">Driver details</p>
+              <p className="text-sm font-semibold text-brand-700">
+                🪪 Identity Verification <span className="font-normal text-neutral-500">(sellers &amp; drivers only)</span>
+              </p>
+              <div>
+                <label className="label">ID Card Photo</label>
+                <input className="input" required type="file" accept="image/*" onChange={(e) => setIdPhoto(e.target.files?.[0] || null)} />
+              </div>
+              <div>
+                <label className="label">Selfie Photo</label>
+                <input className="input" required type="file" accept="image/*" onChange={(e) => setSelfie(e.target.files?.[0] || null)} />
+              </div>
+            </div>
+          )}
+
+          {/* Driver-only section */}
+          {role === "driver" && (
+            <div className="space-y-4 rounded-xl border border-dashed border-amber-300 p-4">
+              <p className="text-sm font-semibold text-amber-700">🛵 Driver Details</p>
               <div>
                 <span className="label">Vehicle Type</span>
                 <div className="grid grid-cols-2 gap-2">
@@ -198,11 +217,22 @@ export default function RegisterPage() {
             </div>
           )}
 
+          {role === "buyer" && (
+            <p className="rounded-xl bg-brand-50 px-4 py-3 text-xs text-brand-700">
+              ✅ Buyers join instantly — no documents needed.
+            </p>
+          )}
+
           <ErrorNote message={error} />
 
           <button className="btn-primary w-full" disabled={submitting}>
             {submitting ? "Creating account…" : "Create account"}
           </button>
+
+          <p className="text-center text-sm text-neutral-500">
+            Already have an account?{" "}
+            <a href="/login" className="font-semibold text-brand-700 underline">Log in</a>
+          </p>
         </form>
       </main>
     </>

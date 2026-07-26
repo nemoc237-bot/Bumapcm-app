@@ -95,8 +95,8 @@ function VerifyContent() {
           </div>
 
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <PhotoLink label="ID Card" url={u.idPhotoUrl} />
-            <PhotoLink label="Selfie" url={u.selfieUrl} />
+            {u.idPhotoUrl && <PhotoLink label="ID Card" url={u.idPhotoUrl} />}
+            {u.selfieUrl && <PhotoLink label="Selfie" url={u.selfieUrl} />}
             {u.role === "driver" && drivers[u.id] && (
               <>
                 <PhotoLink label="Driver License" url={drivers[u.id].licenseUrl} />

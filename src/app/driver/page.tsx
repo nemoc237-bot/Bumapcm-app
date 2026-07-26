@@ -5,7 +5,6 @@ import Link from "next/link";
 import {
   collection,
   doc,
-  getDoc,
   onSnapshot,
   query,
   runTransaction,
@@ -20,13 +19,104 @@ import { EmptyState, Spinner, VehicleIcon } from "@/components/Shared";
 import { formatFcfa } from "@/lib/utils";
 import type { Driver, Order } from "@/types";
 
+// ─── Stat card ────────────────────────────────────────────────────────────────
+
+function StatCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="card flex-1 text-center">
+      <p className="text-xs text-neutral-500">{label}</p>
+      <p className="mt-0.5 text-xl font-extrabold text-brand-700">{value}</p>
+    </div>
+  );
+}
+
+// ─── Active job card ──────────────────────────────────────────────────────────
+
+function ActiveJob({ order, onMarkPickedUp }: { order: Order; onMarkPickedUp: () => void }) {
+  return (
+    <div className="rounded-2xl border-2 border-brand-400 bg-brand-50 p-4">
+      <div className="mb-3 flex items-center justify-between">
+        <p className="font-bold text-brand-800">🚀 Active Delivery</p>
+        <span className="rounded-full bg-brand-600 px-2 py-0.5 text-xs font-semibold text-white">
+          {order.status === "driver_assigned" ? "Assigned" : "Picked Up"}
+        </span>
+      </div>
+      <div className="space-y-1 text-sm">
+        <p><span className="text-neutral-500">Pickup:</span> <span className="font-medium">{order.pickupLocation}</span></p>
+        <p><span className="text-neutral-500">Drop-off:</span> <span className="font-medium">{order.dropoffLocation}</span></p>
+        <p><span className="text-neutral-500">Store:</span> <span className="font-medium">{order.storeName}</span></p>
+        <p><span className="text-neutral-500">Items:</span> {order.items.map((i) => `${i.qty}× ${i.name}`).join(", ")}</p>
+        {order.note && (
+          <p className="rounded-lg bg-amber-50 px-2 py-1 text-xs text-amber-800">📝 {order.note}</p>
+        )}
+      </div>
+      <div className="mt-3 flex items-center justify-between">
+        <p className="text-lg font-extrabold text-brand-700">{formatFcfa(order.deliveryFee)}</p>
+        {order.status === "driver_assigned" ? (
+          <button className="btn-primary !py-2 !px-4 text-sm" onClick={onMarkPickedUp}>
+            ✅ Mark Picked Up
+          </button>
+        ) : (
+          <p className="rounded-full bg-cyan-100 px-3 py-1 text-xs font-semibold text-cyan-700">
+            Waiting for delivery confirmation
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Request card ─────────────────────────────────────────────────────────────
+
+function RequestCard({
+  order,
+  hasActiveJob,
+  onAccept,
+}: {
+  order: Order;
+  hasActiveJob: boolean;
+  onAccept: () => void;
+}) {
+  return (
+    <div className="card flex items-start justify-between gap-3">
+      <div className="flex-1">
+        <p className="font-semibold text-sm">
+          <VehicleIcon type={order.deliveryType ?? "bike"} />{" "}
+          {order.pickupLocation} → {order.dropoffLocation}
+        </p>
+        <p className="mt-0.5 text-xs text-neutral-500">
+          {order.storeName} · {order.items.length} item(s)
+        </p>
+        {order.note && (
+          <p className="mt-1 text-xs text-amber-700">📝 {order.note}</p>
+        )}
+      </div>
+      <div className="flex shrink-0 flex-col items-end gap-1.5">
+        <p className="font-extrabold text-brand-700">{formatFcfa(order.deliveryFee)}</p>
+        <button
+          className="btn-primary !py-1.5 !px-3 text-xs disabled:opacity-50"
+          disabled={hasActiveJob}
+          onClick={onAccept}
+          title={hasActiveJob ? "Finish your current delivery first" : "Accept this job"}
+        >
+          Accept
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main driver content ──────────────────────────────────────────────────────
+
 function DriverHome() {
   const { profile } = useAuth();
   const [driver, setDriver] = useState<Driver | null>(null);
   const [requests, setRequests] = useState<Order[]>([]);
   const [myOrder, setMyOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
+  const [acceptError, setAcceptError] = useState("");
 
+  // Driver profile — live
   useEffect(() => {
     if (!profile) return;
     const unsub = onSnapshot(doc(db, "drivers", profile.id), (snap) => {
@@ -35,7 +125,7 @@ function DriverHome() {
     return () => unsub();
   }, [profile]);
 
-  // Active job assigned to me (not yet delivered).
+  // My active job
   useEffect(() => {
     if (!profile) return;
     const q = query(
@@ -49,21 +139,15 @@ function DriverHome() {
     return () => unsub();
   }, [profile]);
 
-  // Incoming requests: bikes only see "bike" jobs, taxis see all.
+  // Available requests (filtered by vehicle type)
   useEffect(() => {
-    if (!driver) {
-      setLoading(false);
-      return;
-    }
-    const base = query(collection(db, "orders"), where("status", "==", "driver_requested"));
-    const unsub = onSnapshot(base, (snap) => {
+    if (!driver) { setLoading(false); return; }
+    const q = query(collection(db, "orders"), where("status", "==", "driver_requested"));
+    const unsub = onSnapshot(q, (snap) => {
       const all = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Order));
-      // Taxis can take any job. Bikes only see jobs the seller marked "Bike".
-      // (Weight-based <10kg filtering can be added once OrderItem tracks
-      // per-line weight end-to-end; product weightKg is captured today.)
-      const matching = all.filter((o) =>
-        driver.vehicleType === "taxi" ? true : o.deliveryType === "bike"
-      );
+      const matching = driver.vehicleType === "taxi"
+        ? all
+        : all.filter((o) => o.deliveryType === "bike");
       setRequests(matching);
       setLoading(false);
     });
@@ -77,8 +161,8 @@ function DriverHome() {
 
   async function acceptOrder(orderId: string) {
     if (!profile) return;
+    setAcceptError("");
     try {
-      // Transaction guarantees only the first driver to accept gets the job.
       await runTransaction(db, async (tx) => {
         const orderRef = doc(db, "orders", orderId);
         const snap = await tx.get(orderRef);
@@ -94,7 +178,7 @@ function DriverHome() {
         });
       });
     } catch (err: any) {
-      alert(err.message || "Could not accept order.");
+      setAcceptError(err.message || "Could not accept order.");
     }
   }
 
@@ -105,69 +189,91 @@ function DriverHome() {
 
   if (!driver) return <Spinner />;
 
+  const isVerified = driver.verified;
+
   return (
-    <div className="mx-auto max-w-2xl space-y-4">
-      <div className="card flex items-center justify-between">
-        <div>
-          <p className="font-bold">
-            <VehicleIcon type={driver.vehicleType} /> {driver.vehicleType === "bike" ? "Bike" : "Taxi"} Driver
-          </p>
-          <p className="text-xs text-neutral-500">Plate: {driver.plateNumber}</p>
-          {!driver.verified && <p className="badge mt-1 bg-amber-100 text-amber-800">Pending admin verification</p>}
+    <div className="space-y-5">
+      {/* ── Driver identity card ── */}
+      <div className="card flex items-center gap-4">
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-brand-100 text-2xl">
+          {driver.vehicleType === "bike" ? "🛵" : "🚕"}
         </div>
+        <div className="flex-1">
+          <p className="font-bold text-lg leading-tight">{profile?.name}</p>
+          <p className="text-xs text-neutral-500 capitalize">
+            {driver.vehicleType} · Plate: {driver.plateNumber}
+          </p>
+          {isVerified ? (
+            <span className="badge mt-1 bg-brand-100 text-brand-800">✅ Verified</span>
+          ) : (
+            <span className="badge mt-1 bg-amber-100 text-amber-800">⏳ Pending admin verification</span>
+          )}
+        </div>
+        {/* Active toggle */}
         <button
           onClick={toggleActive}
-          disabled={!driver.verified}
-          className={`badge ${driver.isActive ? "bg-brand-100 text-brand-800" : "bg-neutral-200 text-neutral-600"}`}
+          disabled={!isVerified}
+          title={!isVerified ? "Wait for admin verification before going active" : ""}
+          className={`rounded-2xl px-4 py-2 text-sm font-bold transition-colors ${
+            driver.isActive
+              ? "bg-brand-600 text-white hover:bg-brand-700"
+              : "border border-neutral-300 bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+          } disabled:cursor-not-allowed disabled:opacity-40`}
         >
-          {driver.isActive ? "Active (tap to go offline)" : "Offline (tap to go active)"}
+          {driver.isActive ? "🟢 Active" : "⚫ Offline"}
         </button>
       </div>
 
-      <Link href="/driver/earnings" className="card block text-center font-semibold hover:border-brand-400">
-        💰 Earnings: {formatFcfa(driver.totalEarnings)} · {driver.completedDeliveries} deliveries
+      {/* ── Stats row ── */}
+      <div className="flex gap-3">
+        <StatCard label="Total Earned" value={formatFcfa(driver.totalEarnings)} />
+        <StatCard label="Deliveries" value={String(driver.completedDeliveries)} />
+      </div>
+
+      <Link href="/driver/earnings" className="card block text-center text-sm font-semibold text-brand-700 hover:border-brand-400">
+        📊 Full Earnings History →
       </Link>
 
+      {/* ── Active job ── */}
       {myOrder && (
-        <div className="card border-brand-400 bg-brand-50">
-          <p className="font-semibold text-brand-800">Active Delivery</p>
-          <p className="text-sm">Pickup: {myOrder.pickupLocation}</p>
-          <p className="text-sm">Drop-off: {myOrder.dropoffLocation}</p>
-          <p className="text-sm">Fee: {formatFcfa(myOrder.deliveryFee)}</p>
-          {myOrder.note && <p className="text-xs text-amber-800">Note: {myOrder.note}</p>}
-          {myOrder.status === "driver_assigned" ? (
-            <button className="btn-primary mt-2 w-full" onClick={markPickedUp}>Mark as Picked Up</button>
-          ) : (
-            <p className="mt-2 text-center text-sm text-neutral-500">Waiting for buyer &amp; seller to confirm delivery…</p>
-          )}
-        </div>
+        <ActiveJob order={myOrder} onMarkPickedUp={markPickedUp} />
       )}
 
+      {/* ── Incoming requests ── */}
       <div>
-        <h2 className="mb-2 font-bold">Incoming Requests</h2>
-        {!driver.isActive ? (
-          <EmptyState text="Go Active to see delivery requests." />
+        <div className="mb-2 flex items-center justify-between">
+          <h2 className="font-bold">Available Deliveries</h2>
+          {requests.length > 0 && (
+            <span className="rounded-full bg-brand-600 px-2.5 py-0.5 text-xs font-bold text-white">
+              {requests.length}
+            </span>
+          )}
+        </div>
+
+        {!isVerified ? (
+          <div className="card border-amber-200 bg-amber-50 text-center">
+            <p className="text-sm text-amber-800">
+              Your account is pending admin verification. Once approved, deliveries will appear here.
+            </p>
+          </div>
+        ) : !driver.isActive ? (
+          <EmptyState text="You're offline. Tap Active to start receiving delivery requests." />
         ) : loading ? (
           <Spinner />
         ) : requests.length === 0 ? (
-          <EmptyState text="No active orders yet." />
+          <EmptyState text="No delivery requests right now. Check back soon." />
         ) : (
           <div className="space-y-2">
+            {acceptError && (
+              <p className="rounded-xl bg-red-50 px-4 py-2 text-sm text-red-700">{acceptError}</p>
+            )}
             {requests.map((r) => (
-              <div key={r.id} className="card flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-semibold">
-                    <VehicleIcon type={r.deliveryType} /> {r.pickupLocation} → {r.dropoffLocation}
-                  </p>
-                  <p className="text-xs text-neutral-500">{r.storeName} · {r.items.length} item(s)</p>
-                </div>
-                <div className="text-right">
-                  <p className="font-bold text-brand-700">{formatFcfa(r.deliveryFee)}</p>
-                  <button className="btn-primary mt-1 !py-1.5 !px-3 text-xs" disabled={!!myOrder} onClick={() => acceptOrder(r.id)}>
-                    Accept
-                  </button>
-                </div>
-              </div>
+              <RequestCard
+                key={r.id}
+                order={r}
+                hasActiveJob={!!myOrder}
+                onAccept={() => acceptOrder(r.id)}
+              />
             ))}
           </div>
         )}
@@ -176,11 +282,14 @@ function DriverHome() {
   );
 }
 
+// ─── Page shell ───────────────────────────────────────────────────────────────
+
 export default function DriverPage() {
   return (
     <>
       <Navbar />
-      <main className="mx-auto max-w-3xl px-4 py-6">
+      <main className="mx-auto max-w-2xl px-4 py-6">
+        <h1 className="mb-5 text-xl font-bold text-brand-800">Delivery Portal</h1>
         <RoleGuard allow={["driver"]}>
           <DriverHome />
         </RoleGuard>

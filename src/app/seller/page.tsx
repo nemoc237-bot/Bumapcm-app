@@ -146,10 +146,11 @@ function SellerHome() {
         </button>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-3 sm:grid-rows-2">
         <Link href="/seller/products" className="card text-center font-semibold hover:border-brand-400">📦 Manage Menu</Link>
         <Link href="/seller/orders" className="card text-center font-semibold hover:border-brand-400">🧾 Orders</Link>
         <Link href="/seller/earnings" className="card text-center font-semibold hover:border-brand-400">💰 Earnings</Link>
+        <Link href="/seller/messages" className="card text-center font-semibold hover:border-brand-400 sm:col-span-3">💬 Customer Messages</Link>
       </div>
     </div>
   );

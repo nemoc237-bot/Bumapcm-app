@@ -128,6 +128,26 @@ service cloud.firestore {
     }
 
     // -------------------------------------------------------------------------
+    // store chats — encrypted buyer ↔ seller conversations
+    // stores/{storeId}/chats/{buyerId}           session doc
+    // stores/{storeId}/chats/{buyerId}/messages  encrypted messages
+    // -------------------------------------------------------------------------
+    match /stores/{storeId}/chats/{buyerId} {
+      allow read, write: if isSignedIn() && request.auth.uid == buyerId;
+      allow read, write: if isSignedIn()
+                         && get(/databases/$(database)/documents/stores/$(storeId)).data.sellerId == request.auth.uid;
+      allow read, write: if isAdmin();
+
+      match /messages/{msgId} {
+        allow read, create: if isSignedIn() && request.auth.uid == buyerId;
+        allow read, create: if isSignedIn()
+                            && get(/databases/$(database)/documents/stores/$(storeId)).data.sellerId == request.auth.uid;
+        allow read, create: if isAdmin();
+        allow update, delete: if isAdmin();
+      }
+    }
+
+    // -------------------------------------------------------------------------
     // houses — rental/accommodation listings (publicly browsable)
     // -------------------------------------------------------------------------
     match /houses/{houseId} {

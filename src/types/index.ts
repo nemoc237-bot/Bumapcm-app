@@ -16,8 +16,8 @@ export interface BumapUser {
   name: string;
   phone: string;
   email: string;
-  idPhotoUrl: string;
-  selfieUrl: string;
+  idPhotoUrl?: string;  // only set for sellers & drivers
+  selfieUrl?: string;   // only set for sellers & drivers
   verified: boolean;
   banned: boolean;
   banReason?: string;

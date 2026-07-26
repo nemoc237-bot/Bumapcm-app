@@ -18,6 +18,7 @@ import { useCart } from "@/context/CartContext";
 import Navbar from "@/components/Navbar";
 import { EmptyState, Spinner } from "@/components/Shared";
 import { formatFcfa } from "@/lib/utils";
+import StoreChatDrawer from "@/components/StoreChatDrawer";
 import type { Product, Store } from "@/types";
 
 // ─── Order modal ─────────────────────────────────────────────────────────────
@@ -283,6 +284,9 @@ export default function StorePage() {
           </button>
         )}
       </main>
+
+      {/* Encrypted store chat */}
+      <StoreChatDrawer storeId={store.id} storeName={store.name} />
 
       {/* Order modal */}
       {orderTarget && store && (
