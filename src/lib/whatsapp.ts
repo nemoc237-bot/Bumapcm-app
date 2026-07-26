@@ -1,7 +1,5 @@
-export function buildWhatsAppLink(contactWhatsApp: string, storeName: string): string {
+export function buildWhatsAppLink(contactWhatsApp: string, itemName: string): string {
   const digits = contactWhatsApp.replace(/\D/g, "");
-  const message = encodeURIComponent(
-    `Hello, I'm interested in ${storeName} listed on BUMAP.co`
-  );
-  return `https://wa.me/${digits}?text=${message}`;
+  const message = `Hi, I'm interested in ${itemName} — saw it on BUMAP.co`;
+  return `https://wa.me/${digits}?text=${encodeURIComponent(message)}`;
 }

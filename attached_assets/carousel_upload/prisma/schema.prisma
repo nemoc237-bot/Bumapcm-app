@@ -1,0 +1,136 @@
+// prisma/schema.prisma
+// Includes everything from the earlier Houses store-detail delivery, plus
+// two new models for this task: Product and FeaturedListing.
+// If you already have schema.prisma from before, just add the Product and
+// FeaturedListing blocks (marked below) — don't duplicate Store/Booking/Message.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Store {
+  id String @id @default(cuid())
+
+  name        String
+  category    String
+  subcategory String
+  description String
+
+  price        Int
+  priceUnit    String
+  monthlyPrice Int?
+
+  location        String
+  images          String[]
+  contactWhatsApp String
+
+  isDemo Boolean @default(false)
+  status String  @default("active")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  bookings Booking[]
+  messages Message[]
+  products Product[] // NEW relation — a store can list many products
+
+  @@index([subcategory])
+}
+
+model Booking {
+  id String @id @default(cuid())
+
+  storeId String
+  store   Store  @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  name  String
+  phone String
+  date  DateTime
+  notes String?
+
+  type BookingType @default(BOOK_NOW)
+
+  createdAt DateTime @default(now())
+
+  @@index([storeId])
+}
+
+enum BookingType {
+  BOOK_NOW
+  BOOK_APPOINTMENT
+}
+
+model Message {
+  id String @id @default(cuid())
+
+  storeId String
+  store   Store  @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  sender     MessageSender
+  senderName String?
+  body       String
+
+  createdAt DateTime @default(now())
+
+  @@index([storeId, createdAt])
+}
+
+enum MessageSender {
+  CLIENT
+  LANDLORD
+}
+
+// ───────────────────────── NEW FOR THIS TASK ─────────────────────────
+
+model Product {
+  id String @id @default(cuid())
+
+  storeId String
+  store   Store  @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  title       String
+  price       Int
+  priceUnit   String  @default("FCFA") // "FCFA", "FCFA/night", "Contact for price" etc.
+  description String?
+  images      String[]
+
+  category    String // top-level, e.g. "Items", "Houses" — mirrors Store.category
+  subcategory String
+
+  inStock Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  featured FeaturedListing? // a product has at most one active featured slot
+
+  @@index([storeId])
+  @@index([category, subcategory])
+}
+
+model FeaturedListing {
+  id String @id @default(cuid())
+
+  productId String  @unique // one featured slot per product at a time
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  tier FeaturedTier
+
+  startsAt  DateTime @default(now())
+  expiresAt DateTime // carousel/API filters out anything past this — the anti-stagnation mechanism
+
+  createdAt DateTime @default(now())
+
+  @@index([tier, expiresAt])
+}
+
+enum FeaturedTier {
+  BRONZE
+  SILVER
+  GOLD
+}
